@@ -1,5 +1,7 @@
+// Paquete donde se encuentra la clase
 package controllers;
 
+// Importación de clases necesarias para el manejo de servlets, cookies y entrada/salida
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.Cookie;
@@ -12,26 +14,31 @@ import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.Optional;
 
-//path o anotación
+// Anotación que define el servlet y las rutas en las que responderá ("/login" y "/login.html")
 @WebServlet({"/login","/login.html"})
 public class LoginServlet extends HttpServlet {
+
+    // Credenciales estáticas para autenticación básica
     final static String USERNAME = "admin";
     final static String PASSWORD = "12345";
 
+    // Método que se ejecuta cuando se hace una petición GET
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        // Se obtienen las cookies de la petición, si no hay se crea un arreglo vacío
         Cookie[] cookies = req.getCookies() != null ? req.getCookies() : new Cookie[0];
-        //busco en el arreglo de cookie si existe la cookie
-        //solicitada y la convierto en String
+
+        // Se busca una cookie llamada "username"
         Optional<String> cookieOptional = Arrays.stream(cookies)
-                .filter(c -> "username".equals(c.getName()))
-                //convertimos a string el valor encontrado
-                .map(Cookie::getValue)
-                .findAny();
+                .filter(c -> "username".equals(c.getName())) // se filtra por nombre
+                .map(Cookie::getValue) // se obtiene su valor
+                .findAny(); // se toma cualquiera (solo se espera una)
+
         if (cookieOptional.isPresent()) {
+            // Si la cookie existe, el usuario ya inició sesión anteriormente
             resp.setContentType("text/html;charset=UTF-8");
             try (PrintWriter out = resp.getWriter()) {
-                //Creo la plantilla html
+                // Se genera una respuesta HTML personalizada
                 out.println("<!DOCTYPE html>");
                 out.println("<html>");
                 out.println("<head>");
@@ -45,21 +52,27 @@ public class LoginServlet extends HttpServlet {
                 out.println("</html>");
             }
         } else {
-            getServletContext().getRequestDispatcher(
-                    "/login.jsp").forward(req,resp);
+            // Si no hay cookie, se redirige al formulario de login (login.jsp)
+            getServletContext().getRequestDispatcher("/login.jsp").forward(req, resp);
         }
     }
+
+    // Método que se ejecuta cuando se hace una petición POST (ej. desde el formulario de login)
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        // Se obtienen los parámetros del formulario (nombre de usuario y contraseña)
         String username = req.getParameter("username");
         String password = req.getParameter("password");
+
+        // Se validan las credenciales ingresadas con las credenciales definidas
         if (username.equals(USERNAME) && password.equals(PASSWORD)) {
-            //creamos la cookie
+            // Si las credenciales son correctas, se crea una cookie con el nombre de usuario
             Cookie usernameCookie = new Cookie("username", username);
-            resp.addCookie(usernameCookie);
+            resp.addCookie(usernameCookie); // se agrega la cookie a la respuesta
+
             resp.setContentType("text/html;charset=UTF-8");
             try (PrintWriter out = resp.getWriter()) {
-                //Creo la plantilla html
+                // Se genera una respuesta HTML de bienvenida
                 out.println("<!DOCTYPE html>");
                 out.println("<html>");
                 out.println("<head>");
@@ -71,8 +84,11 @@ public class LoginServlet extends HttpServlet {
                 out.println("</body>");
                 out.println("</html>");
             }
+
+            // Redirección a la misma ruta para que se procese de nuevo pero con la cookie establecida
             resp.sendRedirect(req.getContextPath() + "/login.html");
         } else {
+            // Si las credenciales no son válidas, se devuelve un error 401 (no autorizado)
             resp.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Lo sentimos no tiene acceso");
         }
     }
